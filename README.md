@@ -5,4 +5,4 @@ conda activate STAR
 pip install -r requirements_pip.txt
 ```
 ### Download data
-Dataset link: [STAR] (https://bobbywu.com/STAR/)
+Dataset link: [STAR](https://bobbywu.com/STAR/)
