@@ -5,7 +5,7 @@ conda activate STAR
 pip install -r requirements_pip.txt
 ```
 ### Download data
-Download train.json, val.json, test.json [here](https://bobbywu.com/STAR/)
+Download ```STAR_train.json```, ```STAR_val.json```, ```STAR_test.json``` [here](https://bobbywu.com/STAR/)
 ```
 ./data
    |─ README.md
