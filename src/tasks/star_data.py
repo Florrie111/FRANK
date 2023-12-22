@@ -3,7 +3,6 @@
 import time
 # import ffmpeg
 import h5py
-import csv
 
 import json
 import os
@@ -48,7 +47,7 @@ class STARDataset:
         for split in self.splits:
             if split == 'test':
                 with open(root_dir + '/data/STAR_test.json', 'rb') as f:
-                    self.data = pickle.load(f)
+                    self.data = json.load(f)
                     f.close()
 
 		### May not affect data loading?
@@ -111,7 +110,7 @@ class STARDataset:
             self.rel_triplets_data = src.utils.load_pickle(rel_triplet_path)
         else:
             print(f"File not found: {rel_triplet_path}, creating one...")
-            ### self.rel_triplets_data = create_relationship_data(annotation_dir, )
+            self.rel_triplets_data = create_relationship_data(annotation_dir, self.data)
 
         # load action dictionary
         act_path = os.path.join(annotation_dir, 'action_dictionaries.json')
@@ -146,7 +145,7 @@ class STARDataset:
                     triplets.append(triplet)
                 
                 rel_dict[frame_ids[i]] = triplets
-            self.frameTriplets[datum['video_id']] = rel_dict
+            self.frameTriplets[datum['question_id']] = rel_dict
         ### new_end
 
         # load actions for each frame
@@ -167,7 +166,7 @@ class STARDataset:
             act_dict = {}
             for frame_id in frame_ids:
                 act_dict[frame_id] = situations[frame_id]['actions']
-            self.frameActions[datum['video_id']] = act_dict
+            self.frameActions[datum['question_id']] = act_dict
         ### new_end
 
         # List to dict (for evaluation and others)
@@ -205,8 +204,9 @@ class STARTorchDataset(Dataset):
         root_dir = '/home/vision/Feng-Yi/STAR_hypergraph/STAR'
         self.annotation_dir = root_dir + '/annotations'
         # self.video_dir = '/datasets/Charades/data/Charades_v1_480'
+        # self.frame_dir = '/datasets/ActionGenome/dataset/ag/frames'
         self.video_dir = root_dir + '/Charades_v1_480'
-        self.frame_dir = '/datasets/ActionGenome/dataset/ag/frames'
+        self.frame_dir = root_dir + '/Charades_v1_rgb'
 
         self.clip_len = 16
         self.num_rel = 8
@@ -223,15 +223,22 @@ class STARTorchDataset(Dataset):
         """ # original
         with open(self.annotation_dir + '/trimmed_frame_ids.json', 'rb') as f:
             self.frame_ids = pickle.load(f)
-            f.close()
+            f.close()self.frame_ids
         """
         ### new_start
         self.frame_ids = {}
+        for datum in self.data:
+            question_id = datum['question_id']
+            situations = datum['situations']
+            frame_ids = list(situations.keys())
+            self.frame_ids[question_id] = frame_ids
+        """
         with open(self.annotation_dir + '/Video_Keyframe_IDs.csv', newline='') as csvfile:
             rows = csv.reader(csvfile)
             next(rows) # header
             for row in rows:
                 self.frame_ids[row[0]] = row[2] # {question_id: frame_ids}
+        """
         ### new_end
 
         if self.raw_dataset.name == 'test':
@@ -253,16 +260,17 @@ class STARTorchDataset(Dataset):
         vid_id = datum['video_id']
         ques_id = datum['question_id']
         question = datum['question']
-
         if not args.task_q:
             cv2.setNumThreads(1)
             # trimmed_frame_ids = self.frame_ids[vid_id] # original
-            trimmed_frame_ids = self.frame_ids[ques_id] # new
+            trimmed_frame_ids = self.frame_ids[ques_id] # new ast.literal_eval
+            # print(ques_id, vid_id, trimmed_frame_ids)
             select = []
             for i in range(len(trimmed_frame_ids)):
-                frame = cv2.imread(self.frame_dir + '/' + f'{vid_id}.mp4' + '/' + trimmed_frame_ids[i] + '.png')
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                select.append(frame)
+                if os.path.exists(self.frame_dir + '/' + f'{vid_id}/{vid_id}-{trimmed_frame_ids[i]}.jpg'):
+                    frame = cv2.imread(self.frame_dir + '/' + f'{vid_id}/{vid_id}-{trimmed_frame_ids[i]}.jpg')
+                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    select.append(frame)
             frames = torch.as_tensor(np.array(select))
             frames = self.transform.transform(frames)
 
@@ -281,9 +289,11 @@ class STARTorchDataset(Dataset):
 
             else:
                 vid = datum["video_id"]
-                trimmed_frame_ids = self.frame_ids[vid_id]
+                ques_id = datum['question_id']
+                # trimmed_frame_ids = self.frame_ids[vid_id] # original
+                trimmed_frame_ids = self.frame_ids[ques_id] # new ast.literal_eval
 
-                rel_trplts_tokens, lengths, unpad_rels = self.tokenize_relation_triplets(vid, trimmed_frame_ids,
+                rel_trplts_tokens, lengths, unpad_rels = self.tokenize_relation_triplets(ques_id, trimmed_frame_ids,
                                                                                          self.raw_dataset.frameTriplets,
                                                                                          self.raw_dataset.rel_triplets_data[
                                                                                              'rel_triplets_rp2idx'])
@@ -291,7 +301,7 @@ class STARTorchDataset(Dataset):
                 lengths = [lengths[idx] for idx in indices]
 
                 # get actions
-                action_tokens, act_lengths, unpad_acts = self.tokenize_actions(vid, trimmed_frame_ids,
+                action_tokens, act_lengths, unpad_acts = self.tokenize_actions(ques_id, trimmed_frame_ids,
                                                                                self.raw_dataset.frameActions,
                                                                                self.raw_dataset.action_data[
                                                                                    'actions_rp2idx'])
@@ -360,8 +370,8 @@ class STARTorchDataset(Dataset):
 
 
 
-    def tokenize_actions(self, vid, trimmedFrames, acts, act_dict):
-        actions = [acts[vid][x] for x in trimmedFrames]
+    def tokenize_actions(self, ques_id, trimmedFrames, acts, act_dict):
+        actions = [acts[ques_id][x] for x in trimmedFrames]
 
         # tokenize each action based on its label
         action_tokens = [[act_dict[k] for k in rp] for rp in actions]
@@ -381,9 +391,10 @@ class STARTorchDataset(Dataset):
 
 
 
-
-    def tokenize_relation_triplets(self, vid, trimmedFrames, triplets, rel_triplets_rp2idx):
-        rel_trplts = [triplets[vid][x] for x in trimmedFrames]
+    # vid, trimmed_frame_ids, self.raw_dataset.frameTriplets, self.raw_dataset.rel_triplets_data['rel_triplets_rp2idx']
+    def tokenize_relation_triplets(self, ques_id, trimmedFrames, triplets, rel_triplets_rp2idx):
+        # print('vid:', ques_id, 'frames:', trimmedFrames)
+        rel_trplts = [triplets[ques_id][x] for x in trimmedFrames]
         rel_trplts_tokens = [[rel_triplets_rp2idx[k] for k in rp] for rp in rel_trplts]
         return self.pad_relation_triplets(rel_trplts_tokens)
 

@@ -260,7 +260,8 @@ class STAR:
                     # if i < (SET_ITERATIONS/args.batch_size):
 
                     self.model.train()
-                    self.model.module.vid_encoder.eval()
+                    # self.model.module.vid_encoder.eval()
+                    self.model.vid_encoder.eval()
                     self.optim.zero_grad(set_to_none=True)
 
                     train_features = convert_sents_to_features(

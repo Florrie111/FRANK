@@ -274,65 +274,30 @@ def get_answer_vocab(choices, label): # choices: datum["choices"], label: "The c
 
 
 
-def create_relationship_data(annotation_dir, sceneGraphs):
+def create_relationship_data(annotation_dir, data):
     obj_vocab, rel_vocab, verb_vocab = get_vocab_dict(annotation_dir)
 
     rel_triplets = []
     rel_triplet_labels = []
 
     # For each videoID, only get their frames
-    for videoId, val in sceneGraphs.items():
-        for key, typ in val.items():
-            if typ['type'] == 'frame':
-                objList = sceneGraphs[videoId][key]['objects']['names']  # list of all objs in the current frame
-
-                # format to 'obj/000025'
-                for obj in objList:
-                    formatFrame = obj + '/' + key
-
-                    # get relationships for current obj
-                    spatial = sceneGraphs[videoId][formatFrame]['spatial']
-                    contact = sceneGraphs[videoId][formatFrame]['contact']
-                    attention = sceneGraphs[videoId][formatFrame]['attention']
-                    verb = sceneGraphs[videoId][formatFrame]['verb']
-
-                    PERSON = 'o1'
-                    currObj = obj
-
-                    # if relationships exist, make a triplet
-                    if spatial != []:
-                        for rel in spatial:
-                            rel_tuple = (PERSON, rel['class'], currObj)
-                            if rel_tuple not in rel_triplets:
-                                rel_triplets.append(rel_tuple)
-                                rel_triplet_labels.append(
-                                    (obj_vocab[PERSON], rel_vocab[rel['class']], obj_vocab[currObj]))
-
-                    if contact != []:
-                        for rel in contact:
-                            rel_tuple = (PERSON, rel['class'], currObj)
-                            if rel_tuple not in rel_triplets:
-                                rel_triplets.append(rel_tuple)
-                                rel_triplet_labels.append(
-                                    (obj_vocab[PERSON], rel_vocab[rel['class']], obj_vocab[currObj]))
-
-                    if attention != []:
-                        for rel in attention:
-                            rel_tuple = (PERSON, rel['class'], currObj)
-                            if rel_tuple not in rel_triplets:
-                                rel_triplets.append(rel_tuple)
-                                rel_triplet_labels.append(
-                                    (obj_vocab[PERSON], rel_vocab[rel['class']], obj_vocab[currObj]))
-
-                    if verb != []:
-                        for rel in verb:
-                            rel_tuple = (PERSON, rel['class'], currObj)
-                            if rel_tuple not in rel_triplets:
-                                rel_triplets.append(rel_tuple)
-                                rel_triplet_labels.append(
-                                    (obj_vocab[PERSON], verb_vocab[rel['class']], obj_vocab[currObj]))
-
-
+    # "000206": 
+    # {"rel_pairs": [["o000", "o027"], ["o000", "o019"], ["o000", "o004"], ["o000", "o004"]], 
+    # "rel_labels": ["r002", "r002", "r002", "r003"], 
+    # "actions": ["a004", "a002", "a056"], 
+    # "bbox": [[167.51, 317.98, 226.33, 331.49], [140.16, 268.79, 211.72, 323.48], [162.93, 298.17, 228.31, 331.25]], 
+    # "bbox_labels": ["o027", "o019", "o004"]}
+    for datum in data:
+        situations = datum['situations']
+        frame_ids = list(situations.keys())
+        for frame_id in frame_ids:
+            rel_pairs = situations[frame_id]['rel_pairs']
+            rel_labels = situations[frame_id]['rel_labels']
+            for i, rel_pair in enumerate(rel_pairs):
+                rel_tuple = (rel_pair[0], rel_labels[i], rel_pair[1])
+                if rel_tuple not in rel_triplets:
+                    rel_triplets.append(rel_tuple)
+                    rel_triplet_labels.append((obj_vocab[rel_pair[0]], rel_vocab[rel_labels[i]], obj_vocab[rel_pair[1]]))
 
     print(f"Number of unique relationship triplets:{len(rel_triplets)}/{len(rel_triplet_labels)}")
     rel_class_idxes = list(range(1, len(rel_triplets) + 1))
