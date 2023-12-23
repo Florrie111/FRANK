@@ -4,7 +4,6 @@ refenrence: [SHG-VQA](https://github.com/aurooj/SHG-VQA)
 ### Build the environmnet
 ```
 git clone https://github.com/Florrie111/FRANK.git
-unzip 
 cd FRANK
 conda create --name STAR --file requirements_conda.txt
 conda activate STAR
