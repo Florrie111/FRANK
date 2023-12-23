@@ -2,6 +2,7 @@
 # Copyleft 2019 project LXRT.
 
 import os
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 import collections
 
 import time
@@ -219,7 +220,8 @@ class STAR:
         target_classes = torch.full(src_logits.shape[:2], self.background_idx,
                                     dtype=torch.int64, device=src_logits.device)
         target_classes[idx] = target_classes_o
-
+        target_classes = torch.clamp(target_classes, max=src_logits.shape[2]-1)
+        # print(src_logits.shape, target_classes)
         loss_ce = F.cross_entropy(src_logits.transpose(1, 2), target_classes, empty_weight.to(device=src_logits.device))
         losses = {'loss_ce': loss_ce}
 

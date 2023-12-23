@@ -4,6 +4,9 @@ Modules to compute the matching cost and solve the corresponding LSAP.
 This code is modified from https://github.com/facebookresearch/detr/blob/main/models/matcher.py
 All rights belong to Facebook.
 """
+
+import os
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 import torch
 from scipy.optimize import linear_sum_assignment
 from torch import nn
@@ -70,13 +73,27 @@ class HungarianMatcher(nn.Module):
             # Compute the classification cost. Contrary to the loss, we don't use the NLL,
             # but approximate it in 1 - proba[target class].
             # The 1 is a constant that doesn't change the matching, it can be ommitted.
-            cost_class = -out_prob[:, tgt_ids]
+            
+            tgt_ids = torch.clamp(tgt_ids, max=(out_prob.shape[1]-1))
+            cost_class = -out_prob[:, tgt_ids] # (128,457), (48,112)
+            
             # Final cost matrix
             C = self.cost_class * cost_class
             C = C.view(bs*self.clip_len, num_queries//self.clip_len, -1).cpu()
 
             sizes = [len(v.tolist()) for v in flat_tgts]
+            """
+            indices = []
+            for num, c in enumerate(C.split(sizes, -1)):
+                if not torch.isnan(c[num]).any().item() and not torch.isinf(c[num]).any().item():
+                    indices.append(linear_sum_assignment(c[num]))
+                else:
+                    print(c[num])
+            """
+            # print(indices)
+            # test = [c[i] for i, c in enumerate(C.split(sizes, -1))]
             indices = [linear_sum_assignment(c[i]) for i, c in enumerate(C.split(sizes, -1))]
+            # print('test:', test, indices)
             return [(torch.as_tensor(i, dtype=torch.int64), torch.as_tensor(j, dtype=torch.int64)) for i, j in indices]
         else:
             tgt_ids = (torch.cat([v["labels"] for v in targets]).long())
