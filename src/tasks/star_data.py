@@ -206,7 +206,7 @@ class STARTorchDataset(Dataset):
         # self.video_dir = '/datasets/Charades/data/Charades_v1_480'
         # self.frame_dir = '/datasets/ActionGenome/dataset/ag/frames'
         self.video_dir = root_dir + '/Charades_v1_480'
-        self.frame_dir = root_dir + '/Charades_v1_rgb'
+        self.frame_dir = root_dir + '/frames'
 
         self.clip_len = 16
         self.num_rel = 8
@@ -255,7 +255,7 @@ class STARTorchDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, item: int):
-        ### datum: "question_id", "question", "video_id", "start", "end", "choise", "situation", "answer"
+        ### datum: "question_id", "question", "video_id", "start", "end", "choises", "situations", "answer"
         datum = self.data[item]
         vid_id = datum['video_id']
         ques_id = datum['question_id']
@@ -267,12 +267,15 @@ class STARTorchDataset(Dataset):
             # print(ques_id, vid_id, trimmed_frame_ids)
             select = []
             for i in range(len(trimmed_frame_ids)):
-                if os.path.exists(self.frame_dir + '/' + f'{vid_id}/{vid_id}-{trimmed_frame_ids[i]}.jpg'):
-                    frame = cv2.imread(self.frame_dir + '/' + f'{vid_id}/{vid_id}-{trimmed_frame_ids[i]}.jpg')
+                if os.path.exists(self.frame_dir + '/' + f'{vid_id}.mp4/{trimmed_frame_ids[i]}.png'):
+                    frame = cv2.imread(self.frame_dir + '/' + f'{vid_id}.mp4/{trimmed_frame_ids[i]}.png')
                     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                     select.append(frame)
-            frames = torch.as_tensor(np.array(select))
-            frames = self.transform.transform(frames)
+            if select:
+                frames = torch.as_tensor(np.array(select))
+                frames = self.transform.transform(frames)
+            else:
+                print(vid_id, datum['situations'])
 
         mask_shape = 8 * 7 * 7 + 1  # t=8 (after R3D+conv), h=w=7, +1 for cls token
         boxes = np.ones(mask_shape)  # dummy value for now
