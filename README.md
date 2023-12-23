@@ -1,12 +1,16 @@
 # FRANK
 refenrence: [SHG-VQA](https://github.com/aurooj/SHG-VQA)
 
-### Build the conda environmnet
+### Build the environmnet
 ```
+git clone https://github.com/Florrie111/FRANK.git
+cd FRANK
 conda create --name STAR --file requirements_conda.txt
 conda activate STAR
 pip install -r requirements_pip.txt
 ```
+Please replace the TODO parts in ```src/task/star_data.py``` with your directories.
+
 ### Download data
 Download ```STAR_train.json```, ```STAR_val.json```, ```STAR_test.json``` [here](https://bobbywu.com/STAR/)
 ```
