@@ -20,6 +20,17 @@ Download ```STAR_train.json```, ```STAR_val.json```, ```STAR_test.json``` [here]
    |─ STAR_train.json
    └─ STAR_val.json
 ```
+Follow the instructions [here](https://github.com/JingweiJ/ActionGenome/tree/master) to generate the frames.
+```
+./FRANK
+   |─ annotations/
+   |─ data/
+   |─ frames/
+   |   .
+   |   .
+   |   .
+   └─ STAR_run.py
+```
 ### Train
 ```
 python3 STAR_run.py --train train --valid valid --llayers 5 --xlayers 2 --rlayers 5 \
