@@ -20,7 +20,7 @@ Download ```STAR_train.json```, ```STAR_val.json```, ```STAR_test.json``` [here]
    |─ STAR_train.json
    └─ STAR_val.json
 ```
-Follow the instructions [here](https://github.com/JingweiJ/ActionGenome/tree/master) to generate the frames.
+Follow the instructions [here](https://github.com/JingweiJ/ActionGenome/tree/master) to generate the frames (~58.9 GB).
 ```
 ./FRANK
    |─ annotations/
