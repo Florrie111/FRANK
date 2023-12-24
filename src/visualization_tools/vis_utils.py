@@ -277,27 +277,11 @@ def get_answer_vocab(choices, label): # choices: datum["choices"], label: "The c
 def create_relationship_data(annotation_dir, data):
     obj_vocab, rel_vocab, verb_vocab = get_vocab_dict(annotation_dir)
 
-    rel_triplets = []
-    rel_triplet_labels = []
+    obj_list = obj_vocab.keys()
+    rel_list = rel_vocab.keys()
 
-    # For each videoID, only get their frames
-    # "000206": 
-    # {"rel_pairs": [["o000", "o027"], ["o000", "o019"], ["o000", "o004"], ["o000", "o004"]], 
-    # "rel_labels": ["r002", "r002", "r002", "r003"], 
-    # "actions": ["a004", "a002", "a056"], 
-    # "bbox": [[167.51, 317.98, 226.33, 331.49], [140.16, 268.79, 211.72, 323.48], [162.93, 298.17, 228.31, 331.25]], 
-    # "bbox_labels": ["o027", "o019", "o004"]}
-    for datum in data:
-        situations = datum['situations']
-        frame_ids = list(situations.keys())
-        for frame_id in frame_ids:
-            rel_pairs = situations[frame_id]['rel_pairs']
-            rel_labels = situations[frame_id]['rel_labels']
-            for i, rel_pair in enumerate(rel_pairs):
-                rel_tuple = (rel_pair[0], rel_labels[i], rel_pair[1])
-                if rel_tuple not in rel_triplets:
-                    rel_triplets.append(rel_tuple)
-                    rel_triplet_labels.append((obj_vocab[rel_pair[0]], rel_vocab[rel_labels[i]], obj_vocab[rel_pair[1]]))
+    rel_triplets = list(set((obj1, rel, obj2) for obj1 in obj_list for obj2 in obj_list for rel in rel_list))
+    rel_triplet_labels = [(obj_vocab[obj1], rel_vocab[rel], obj_vocab[obj2]) for obj1, rel, obj2 in rel_triplets]
 
     print(f"Number of unique relationship triplets:{len(rel_triplets)}/{len(rel_triplet_labels)}")
     rel_class_idxes = list(range(1, len(rel_triplets) + 1))
